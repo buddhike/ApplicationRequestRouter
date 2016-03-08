@@ -13,7 +13,9 @@ namespace ApplicationRequestRouter
 
             app.Use<RouterMiddleware>(
                 new RouteTable(routeConfigs.ToArray()),
-                new RouteHandler(new StreamCopyOperation()));
+                new RouteHandler(
+                    new StreamCopyOperation(),
+                    new HttpRequestHeaderCopyOperation()));
 
             return app;
         } 

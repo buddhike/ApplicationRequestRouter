@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
-using System.Reflection;
 using Microsoft.Owin.Hosting;
 using Owin;
 using Xunit;
@@ -22,8 +22,17 @@ namespace ApplicationRequestRouter.Tests.Integration
             {
                 app.Run(async c =>
                 {
+                    string body = null;
+                    var request = c.Request;
+
+                    using (var reader = new StreamReader(c.Request.Body))
+                    {
+                        body = await reader.ReadToEndAsync();
+                    }
                     c.Response.ContentType = "text/plain";
-                    await c.Response.WriteAsync(c.Request.Path.Value);
+
+                    await c.Response.WriteAsync(
+                        $"{request.Method}-{request.Path.Value}-{body}");
                 });
             });
 
@@ -46,13 +55,24 @@ namespace ApplicationRequestRouter.Tests.Integration
         }
 
         [Fact]
-        public async void ShouldRouteMappedRequests()
+        public async void ShouldRouteGetRequests()
         {
             var client = new HttpClient();
             var response = await client.GetAsync($"{_middlewareUrl}/a");
             var body = await response.Content.ReadAsStringAsync();
 
-            Assert.Equal("/a", body);
+            Assert.Equal("GET-/a-", body);
+        }
+
+        [Fact]
+        public async void ShouldRoutePutRequests()
+        {
+            var client = new HttpClient();
+            var response = await client.PutAsync($"{_middlewareUrl}/a",
+                new StringContent("hello"));
+            var body = await response.Content.ReadAsStringAsync();
+
+            Assert.Equal("PUT-/a-hello", body);
         }
 
         [Fact]

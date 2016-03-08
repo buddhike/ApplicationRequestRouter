@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using Microsoft.Owin;
 
@@ -16,59 +18,57 @@ namespace ApplicationRequestRouter
     {
         private readonly IStreamCopyOperation _streamCopyOperation;
 
-        private static readonly IDictionary<string, HttpMethod> HttpMethods =
-            new Dictionary<string, HttpMethod>
-            {
-                { "head", HttpMethod.Head },
-                { "delete", HttpMethod.Delete },
-                { "get", HttpMethod.Get },
-                { "options", HttpMethod.Options },
-                { "post", HttpMethod.Post},
-                { "put", HttpMethod.Put },
-                { "trace", HttpMethod.Trace }
-            };
+        private readonly IHttpRequestHeaderCopyOperation 
+            _requestHeaderCopyOperation;
 
-        private static readonly HttpMethod[] BodylessMethods =
-            { HttpMethod.Get, HttpMethod.Options, HttpMethod.Trace };
+        private static readonly string[] BodylessMethods =
+        {"GET", "HEAD", "TRACE"};
 
-        public RouteHandler(IStreamCopyOperation streamCopyOperation)
+        public RouteHandler(IStreamCopyOperation streamCopyOperation,
+            IHttpRequestHeaderCopyOperation requestHeaderCopyOperation)
         {
-            if (streamCopyOperation == null) throw 
+            if (streamCopyOperation == null)
+            {
+                throw
                     new ArgumentNullException(nameof(streamCopyOperation));
+            }
+
+            if (requestHeaderCopyOperation == null)
+            {
+                throw
+                    new ArgumentNullException(
+                        nameof(requestHeaderCopyOperation));
+            }
 
             _streamCopyOperation = streamCopyOperation;
+            _requestHeaderCopyOperation = requestHeaderCopyOperation;
         }
 
         public async Task Handle(IOwinContext context, RouteConfig config)
         {
             var input = context.Request;
+            var destination = new Uri(config.Destination, config.Source.Value);
+            var request = WebRequest.CreateHttp(destination);
+            request.Method = input.Method;
 
-            var client = new HttpClient();
-            var method = HttpMethods[input.Method.ToLower()];
+            _requestHeaderCopyOperation.Copy(input, request);
 
-            var request = new HttpRequestMessage(
-                method,
-                new Uri(config.Destination, config.Source.Value));
-
-            if(!BodylessMethods.Contains(method))
+            if (!BodylessMethods.Contains(input.Method))
             {
-                request.Content = new StreamContent(input.Body);
+                await _streamCopyOperation.Copy(input.Body,
+                    request.GetRequestStream());
             }
 
-            foreach (var header in input.Headers)
-            {
-                request.Headers.Add(header.Key, header.Value);                
-            }
-
-            var response = await client.SendAsync(request);
-
+            var response = await request.GetResponseAsync();
             var output = context.Response;
-            foreach (var header in response.Headers)
+
+            for (var i = 0; i < response.Headers.Count; i++)
             {
-                output.Headers.Add(header.Key, header.Value.ToArray());
+                var k = response.Headers.GetKey(i);
+                output.Headers.Add(k, response.Headers.GetValues(k));
             }
 
-            var bodyStream = await response.Content.ReadAsStreamAsync();
+            var bodyStream = response.GetResponseStream();
             await _streamCopyOperation.Copy(bodyStream, output.Body);
         }
     }
