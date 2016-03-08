@@ -7,7 +7,7 @@ namespace ApplicationRequestRouter
 {
     public interface IHttpRequestHeaderCopyOperation
     {
-        HttpWebRequest Copy(IOwinRequest source, 
+        HttpWebRequest Copy(IOwinRequest source,
             HttpWebRequest destination);
     }
 
@@ -15,11 +15,10 @@ namespace ApplicationRequestRouter
     {
         const char Quote = (char) 34;
 
-        public HttpWebRequest Copy(IOwinRequest source, 
+        public HttpWebRequest Copy(IOwinRequest source,
             HttpWebRequest destination)
         {
-
-            var nonRestrictedHeaders = 
+            var nonRestrictedHeaders =
                 from h in source.Headers
                 where WebHeaderCollection.IsRestricted(h.Key) == false
                 select h;
@@ -28,9 +27,9 @@ namespace ApplicationRequestRouter
             {
                 var sanitisedValues = from v in h.Value
                     select QuoteIfNeeded(v);
-                
-                destination.Headers.Add(h.Key, 
-                    string.Join(",", sanitisedValues.ToArray()));   
+
+                destination.Headers.Add(h.Key,
+                    string.Join(",", sanitisedValues.ToArray()));
             }
 
             destination.Accept = source.Headers["Accept"];
@@ -75,5 +74,4 @@ namespace ApplicationRequestRouter
             return value;
         }
     }
-
 }

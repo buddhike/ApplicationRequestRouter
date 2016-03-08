@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="HttpRequestHeaderCopyOperation.cs" />
+    <Compile Include="HttpResponseHeaderCopyOperation.cs" />
     <Compile Include="RouteConfig.cs" />
     <Compile Include="RouteHandler.cs" />
     <Compile Include="RouterMiddleware.cs" />

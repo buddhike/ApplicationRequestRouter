@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using Microsoft.Owin;
 
@@ -21,11 +18,15 @@ namespace ApplicationRequestRouter
         private readonly IHttpRequestHeaderCopyOperation 
             _requestHeaderCopyOperation;
 
+        private readonly IHttpResponseHeaderCopyOperation 
+            _responseHeaderCopyOperation;
+
         private static readonly string[] BodylessMethods =
         {"GET", "HEAD", "TRACE"};
 
         public RouteHandler(IStreamCopyOperation streamCopyOperation,
-            IHttpRequestHeaderCopyOperation requestHeaderCopyOperation)
+            IHttpRequestHeaderCopyOperation requestHeaderCopyOperation,
+            IHttpResponseHeaderCopyOperation responseHeaderCopyOperation)
         {
             if (streamCopyOperation == null)
             {
@@ -39,9 +40,15 @@ namespace ApplicationRequestRouter
                     new ArgumentNullException(
                         nameof(requestHeaderCopyOperation));
             }
+            if (responseHeaderCopyOperation == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(responseHeaderCopyOperation));
+            }
 
             _streamCopyOperation = streamCopyOperation;
             _requestHeaderCopyOperation = requestHeaderCopyOperation;
+            _responseHeaderCopyOperation = responseHeaderCopyOperation;
         }
 
         public async Task Handle(IOwinContext context, RouteConfig config)
@@ -62,11 +69,7 @@ namespace ApplicationRequestRouter
             var response = await request.GetResponseAsync();
             var output = context.Response;
 
-            for (var i = 0; i < response.Headers.Count; i++)
-            {
-                var k = response.Headers.GetKey(i);
-                output.Headers.Add(k, response.Headers.GetValues(k));
-            }
+            _responseHeaderCopyOperation.Copy(response, output);
 
             var bodyStream = response.GetResponseStream();
             await _streamCopyOperation.Copy(bodyStream, output.Body);

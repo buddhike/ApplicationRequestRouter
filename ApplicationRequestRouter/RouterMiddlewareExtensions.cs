@@ -15,7 +15,8 @@ namespace ApplicationRequestRouter
                 new RouteTable(routeConfigs.ToArray()),
                 new RouteHandler(
                     new StreamCopyOperation(),
-                    new HttpRequestHeaderCopyOperation()));
+                    new HttpRequestHeaderCopyOperation(),
+                    new HttpResponseHeaderCopyOperation()));
 
             return app;
         } 
