@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Microsoft.Owin;
 
@@ -17,27 +17,33 @@ namespace ApplicationRequestRouter
         private static readonly IDictionary<string, HttpMethod> HttpMethods =
             new Dictionary<string, HttpMethod>
             {
+                { "head", HttpMethod.Head },
                 { "delete", HttpMethod.Delete },
                 { "get", HttpMethod.Get },
                 { "options", HttpMethod.Options },
-                { "head", HttpMethod.Head },
-                { "get", HttpMethod.Get },
-                { "post", HttpMethod.Put },
+                { "post", HttpMethod.Post},
+                { "put", HttpMethod.Put },
                 { "trace", HttpMethod.Trace }
             };
+
+        private static readonly HttpMethod[] BodylessMethods =
+            { HttpMethod.Get, HttpMethod.Options, HttpMethod.Trace };
 
         public async Task Handle(IOwinContext context, RouteConfig config)
         {
             var input = context.Request;
 
             var client = new HttpClient();
+            var method = HttpMethods[input.Method.ToLower()];
 
             var request = new HttpRequestMessage(
-                HttpMethods[input.Method.ToLower()],
-                config.Destination.Value)
+                method,
+                new Uri(config.Destination, config.Source.Value));
+
+            if(!BodylessMethods.Contains(method))
             {
-                Content = new StreamContent(input.Body)
-            };
+                request.Content = new StreamContent(input.Body);
+            }
 
             foreach (var header in input.Headers)
             {
@@ -52,7 +58,16 @@ namespace ApplicationRequestRouter
                 output.Headers.Add(header.Key, header.Value.ToArray());
             }
 
-            context.Response.Body = await response.Content.ReadAsStreamAsync();
+            var bodyStream = await response.Content.ReadAsStreamAsync();
+
+            var buffer = new byte[4096];
+
+            var count = await bodyStream.ReadAsync(buffer, 0, buffer.Length);
+            while (count != 0)
+            {
+                await output.Body.WriteAsync(buffer, 0, count);
+                count = await bodyStream.ReadAsync(buffer, 0, buffer.Length);
+            }
         }
     }
 }

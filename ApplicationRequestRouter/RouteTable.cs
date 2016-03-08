@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Microsoft.Owin;
 
 namespace ApplicationRequestRouter
@@ -11,7 +12,7 @@ namespace ApplicationRequestRouter
     public class RouteTable : IRouteTable
     {
         public static readonly RouteConfig  Unmatched = 
-            new RouteConfig(PathString.Empty, PathString.Empty);
+            new RouteConfig("", "router://unmatched");
          
         private readonly RouteConfig[] _configuration;
 
