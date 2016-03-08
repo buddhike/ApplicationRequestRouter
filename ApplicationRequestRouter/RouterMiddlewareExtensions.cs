@@ -13,7 +13,7 @@ namespace ApplicationRequestRouter
 
             app.Use<RouterMiddleware>(
                 new RouteTable(routeConfigs.ToArray()),
-                new RouteHandler());
+                new RouteHandler(new StreamCopyOperation()));
 
             return app;
         } 

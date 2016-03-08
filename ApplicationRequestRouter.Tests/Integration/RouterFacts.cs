@@ -10,12 +10,15 @@ namespace ApplicationRequestRouter.Tests.Integration
 {
     public class RouterFacts : IDisposable
     {
+        private readonly string _appServerUrl = "http://localhost:9000";
+        private readonly string _middlewareUrl = "http://localhost:9001";
+
         private readonly IDisposable _appServer;
         private readonly IDisposable _middleware;
 
         public RouterFacts()
         {
-            _appServer = WebApp.Start("http://localhost:9000", app =>
+            _appServer = WebApp.Start($"{_appServerUrl}", app =>
             {
                 app.Run(async c =>
                 {
@@ -24,13 +27,13 @@ namespace ApplicationRequestRouter.Tests.Integration
                 });
             });
 
-            _middleware = WebApp.Start("http://localhost:9001", app =>
+            _middleware = WebApp.Start($"{_middlewareUrl}", app =>
             {
                 app.UseApplicationRequestRouter(new RouterOptions
                 {
                     Routes = new Dictionary<string, string>
                     {
-                        {"/a", "http://localhost:9000"}
+                        {"/a", $"{_appServerUrl}"}
                     }
                 });
 
@@ -46,7 +49,7 @@ namespace ApplicationRequestRouter.Tests.Integration
         public async void ShouldRouteMappedRequests()
         {
             var client = new HttpClient();
-            var response = await client.GetAsync("http://localhost:9001/a");
+            var response = await client.GetAsync($"{_middlewareUrl}/a");
             var body = await response.Content.ReadAsStringAsync();
 
             Assert.Equal("/a", body);
@@ -56,7 +59,7 @@ namespace ApplicationRequestRouter.Tests.Integration
         public async void ShouldNotRouteUnmappedRequests()
         {
             var client = new HttpClient();
-            var response = await client.GetAsync("http://localhost:9001/foo");
+            var response = await client.GetAsync($"{_middlewareUrl}/foo");
             var body = await response.Content.ReadAsStringAsync();
 
             Assert.Equal("unmatched", body);

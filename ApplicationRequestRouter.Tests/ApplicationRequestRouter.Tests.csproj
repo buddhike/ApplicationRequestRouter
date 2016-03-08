@@ -84,6 +84,7 @@
     <Compile Include="RouterMiddlewareFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RouteTableFacts.cs" />
+    <Compile Include="StreamCopyOperationFacts.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

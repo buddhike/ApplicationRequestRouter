@@ -14,6 +14,8 @@ namespace ApplicationRequestRouter
 
     public class RouteHandler : IRouteHandler
     {
+        private readonly IStreamCopyOperation _streamCopyOperation;
+
         private static readonly IDictionary<string, HttpMethod> HttpMethods =
             new Dictionary<string, HttpMethod>
             {
@@ -28,6 +30,14 @@ namespace ApplicationRequestRouter
 
         private static readonly HttpMethod[] BodylessMethods =
             { HttpMethod.Get, HttpMethod.Options, HttpMethod.Trace };
+
+        public RouteHandler(IStreamCopyOperation streamCopyOperation)
+        {
+            if (streamCopyOperation == null) throw 
+                    new ArgumentNullException(nameof(streamCopyOperation));
+
+            _streamCopyOperation = streamCopyOperation;
+        }
 
         public async Task Handle(IOwinContext context, RouteConfig config)
         {
@@ -59,15 +69,7 @@ namespace ApplicationRequestRouter
             }
 
             var bodyStream = await response.Content.ReadAsStreamAsync();
-
-            var buffer = new byte[4096];
-
-            var count = await bodyStream.ReadAsync(buffer, 0, buffer.Length);
-            while (count != 0)
-            {
-                await output.Body.WriteAsync(buffer, 0, count);
-                count = await bodyStream.ReadAsync(buffer, 0, buffer.Length);
-            }
+            await _streamCopyOperation.Copy(bodyStream, output.Body);
         }
     }
 }

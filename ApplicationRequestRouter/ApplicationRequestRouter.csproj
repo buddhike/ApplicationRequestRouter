@@ -55,6 +55,7 @@
     <Compile Include="RouterMiddlewareExtensions.cs" />
     <Compile Include="RouterOptions.cs" />
     <Compile Include="RouteTable.cs" />
+    <Compile Include="StreamCopyOperation.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
